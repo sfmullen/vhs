@@ -1,0 +1,26 @@
+{
+  "capture_running": false,
+  "event": "Transient increase in repaired and repeated frames around 09:30\u201310:20 of the recording.",
+  "before": {
+    "elapsed_seconds": 561,
+    "repaired": 0,
+    "repeated": 0
+  },
+  "after": {
+    "elapsed_seconds": 621,
+    "repaired": 810,
+    "repeated": 258
+  },
+  "latest": {
+    "elapsed_seconds": 651,
+    "repaired": 810,
+    "repeated": 258
+  },
+  "visual_samples": {
+    "monitor-590.png": "Movie picture and subtitles remain visible, with horizontal noise/distortion particularly across the lower picture.",
+    "monitor-620.png": "Movie picture present without the pronounced horizontal disruption in the earlier sample."
+  },
+  "cause": "Not established; do not attribute exclusively to tape condition or capture hardware without further evidence.",
+  "action": "Capture left running unchanged. Counters stabilized after the event. Include this event in the final findings and select speech references before and after it to check for a possible synchronization step as well as drift.",
+  "kernel_evidence": "STK1160 offset-out-of-bounds messages and a warning in stk1160_process_isoc coincide with the disturbance; see kernel-event.log. Underlying cause is not established."
+}

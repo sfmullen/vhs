@@ -1,0 +1,335 @@
+#!/usr/bin/env bash
+# vhs - archive VHS tapes: STK1160 capture card (video) + onboard line-in or Scarlett Solo (audio)
+#
+#   vhs check                          test signal, frame rate, audio levels; saves snapshot.png
+#   vhs preview                        live picture on this machine's screen (q to quit)
+#   vhs capture <name> [HH:MM:SS]      master <name>.mkv and/or viewing copy <name>.mp4 in OUT_DIR (Ctrl-C to stop)
+#   vhs encode  <file.mkv>             viewing copy from a master -> <file>.mp4 (same settings as capture)
+#   vhs standard                       find which colour standard the playing tape needs
+#   vhs reset                          re-plug the capture card over USB (no picture and no errors = wedged card)
+set -euo pipefail
+
+# ---- settings ----------------------------------------------------------------
+VIDEO_DEV=/dev/video0
+VIDEO_INPUT=0          # 0 = Composite (yellow RCA), 4 = S-Video
+STANDARD=${VHS_STANDARD:-auto}   # auto = try each colour standard on the playing tape, keep the one with colour (~10 s)
+                       # one-off override: VHS_STANDARD=NTSC-M vhs preview
+                       # or fix it: PAL-Nc (Argentina), PAL-BG (Europe), NTSC-M (USA/Japan), PAL-M (Brazil)
+AUDIO_SOURCE=scarlett  # linein   = motherboard's blue Line-In jack, stereo (RCA-to-3.5mm cable)
+                       # scarlett = Focusrite Scarlett Solo, see AUDIO_MODE
+LINEIN_GAIN=0dB        # raise (e.g. 6dB) if 'vhs check' peaks stay below -20 dB
+AUDIO_MODE=mono        # mono   = one channel in: line-in Left (white plug) / Scarlett input 2
+                       # stereo = both: line-in L+R / Scarlett input 1 (L, XLR) + input 2 (R)
+FFV1_SLICES=4          # encoder threads for the master: 4 on this 4-core CPU (24 on a 12-thread one)
+ENCODE_PRESET=veryfast # x264 speed for 'vhs encode': veryfast here (~1.5x real time); slow on a fast CPU
+ENCODER=vaapi          # vaapi = Intel GPU HEVC encoder for 'vhs encode' (fast); x264 = software H.264 (ENCODE_PRESET)
+CAPTURE_WINDOW=yes     # show the picture in a window while capturing (needs a screen; closing it does not stop the capture)
+CAPTURE_MP4=yes        # yes = capture also writes the viewing MP4 (same settings as 'vhs encode'), no second step
+KEEP_MASTER=no         # yes = also keep a lossless master .mkv (~30 GB per hour) to re-encode from later
+OUT_DIR=/srv/vhs               # on the NVMe (~436 GB free), shared read-only on the network
+# ------------------------------------------------------------------------------
+
+usage() { sed -n '2,9p' "$0"; }
+SIGNAL_LOCK=""
+
+# Video comes through vhs-cap, which keeps frames the card delivers a few lines or
+# one field short (ffmpeg's own v4l2 input drops them, which made playback choppy).
+# The STK1160 sometimes wedges: fine on USB, no kernel errors, but no signal lock and no
+# frames until it is re-enumerated. Toggling 'authorized' on its USB port is an unplug/replug.
+reset_card() {
+  local d; d=$(grep -lx 05e1 /sys/bus/usb/devices/*/idVendor 2>/dev/null | head -1 || true); d=${d%/idVendor}; d=${d##*/}
+  [[ -n "$d" ]] || { echo "Capture card not found on USB." >&2; return 1; }
+  echo "Resetting the capture card (USB $d)..." >&2
+  echo 0 | sudo -n tee "/sys/bus/usb/devices/$d/authorized" >/dev/null; sleep 2
+  echo 1 | sudo -n tee "/sys/bus/usb/devices/$d/authorized" >/dev/null
+  local i; for i in $(seq 1 10); do [[ -e "$VIDEO_DEV" ]] && break; sleep 1; done
+  [[ -e "$VIDEO_DEV" ]] || { echo "Card did not come back after the reset." >&2; return 1; }
+  sleep 1; v4l2-ctl -d "$VIDEO_DEV" --set-input="$VIDEO_INPUT" --set-standard="$(std_id PAL-Nc)" >/dev/null 2>&1 || true
+}
+
+signal_lock() {   # the decoder's detected standard, or nothing when there is no video signal
+  local lock; lock=$(v4l2-ctl -d "$VIDEO_DEV" --get-detected-standard 2>/dev/null | tail -n +2 | xargs)
+  case "$lock" in *SECAM*NTSC*|*NTSC*SECAM*|"") ;; *) echo "$lock" ;; esac
+}
+
+# Sets SIGNAL_LOCK. A wedged card looks exactly like an idle VCR, so one reset settles which.
+ensure_signal() {
+  local try
+  v4l2-ctl -d "$VIDEO_DEV" --set-standard="$(std_id PAL-Nc)" >/dev/null 2>&1   # wakes the decoder
+  for try in 1 2 3; do SIGNAL_LOCK=$(signal_lock); [[ -n "$SIGNAL_LOCK" ]] && return; sleep 1; done
+  reset_card || return 0
+  for try in 1 2 3; do SIGNAL_LOCK=$(signal_lock); [[ -n "$SIGNAL_LOCK" ]] && return; sleep 1; done
+  echo "No video signal from the VCR: is a tape playing, and is the yellow cable in the card's video jack?" >&2
+}
+
+setup_video() {
+  [[ -e "$VIDEO_DEV" ]] || { echo "No capture card at $VIDEO_DEV. Plug the STK1160 into a USB 2.0 port and try again." >&2; exit 1; }
+  # a stale probe (ffmpeg reading the card directly) can only be a leftover of ours: remove it
+  pkill -KILL -f "ffmpeg .*-f v4l2 -i $VIDEO_DEV" 2>/dev/null && sleep 1
+  if pgrep -f "vhs-cap $VIDEO_DEV" >/dev/null; then
+    echo "The capture card is in use by another vhs preview/capture. Close it first (super+w on its window, or: pkill -f vhs-cap)." >&2; exit 1
+  fi
+  v4l2-ctl -d "$VIDEO_DEV" --set-input="$VIDEO_INPUT" >/dev/null
+  ensure_signal
+  VIDEO_STD=$STANDARD
+  [[ "$STANDARD" == auto ]] && VIDEO_STD=$(detect_standard)
+  v4l2-ctl -d "$VIDEO_DEV" --set-standard="$(std_id "$VIDEO_STD")" >/dev/null
+  read -r VIDEO_W VIDEO_H < <(v4l2-ctl -d "$VIDEO_DEV" --get-fmt-video | awk -F'[ /]+' '/Width\/Height/ {print $(NF-1), $NF}')
+  VIDEO_FPS=25; FIELD=tt; PARITY=tff          # this card delivers top field first for every standard (measured)
+  [[ "$VIDEO_H" == 480 ]] && VIDEO_FPS=30000/1001   # 525-line NTSC/PAL-M
+  VIDEO_IN=(-f rawvideo -pixel_format uyvy422 -video_size "${VIDEO_W}x${VIDEO_H}" -framerate "$VIDEO_FPS"
+            -thread_queue_size 4096 -i pipe:0)   # timing comes from the card via vhs-cap's steady grid
+}
+
+cap() { "$(dirname "$(readlink -f "$0")")/vhs-cap" "$VIDEO_DEV" "$VIDEO_W" "$VIDEO_H" "$@"; }
+
+std_id() {  # v4l2 id for a standard name: v4l2-ctl knows only a few names, ids always work
+  case "$1" in
+    PAL-Nc) echo 0x400 ;;  PAL-BG) echo 0x7 ;;   PAL-N) echo 0x200 ;;     SECAM) echo 0xff0000 ;;
+    NTSC-M) echo 0x1000 ;; PAL-M) echo 0x100 ;;  NTSC-443) echo 0x4000 ;; PAL-60) echo 0x800 ;;
+    *) echo "$1" ;;
+  esac
+}
+
+# A tape decoded with the wrong colour standard comes out black and white, or grey with
+# flickering rainbow stripes that read as strong 'colour'. Real colour is smooth, so it is
+# measured on a 45x36 downscale where stripe noise averages away. Try each candidate for
+# 2 s; candidates are listed by likelihood and a later one must beat the leader by 20%.
+detect_standard() {
+  local cands="PAL-Nc PAL-BG PAL-N SECAM NTSC-M PAL-M NTSC-443 PAL-60"
+  case "$SIGNAL_LOCK" in
+    "") echo "No video signal, using PAL-Nc for now." >&2; echo PAL-Nc; return ;;
+    *NTSC*|*PAL-M*|*PAL-60*) cands="NTSC-M PAL-M NTSC-443 PAL-60" ;;
+    *PAL*|*SECAM*)           cands="PAL-Nc PAL-BG PAL-N SECAM" ;;
+  esac
+  local name sat best=${cands%% *} bestsat=0 tmp; tmp=$(mktemp)
+  echo "Detecting colour standard, keep the tape playing..." >&2
+  for name in $cands; do
+    v4l2-ctl -d "$VIDEO_DEV" --set-standard="$(std_id "$name")" >/dev/null 2>&1 || { echo "  $name: cannot set" >&2; continue; }
+    timeout -k 1 6 ffmpeg -nostdin -hide_banner -loglevel error -f v4l2 -i "$VIDEO_DEV" -t 2 \
+           -filter_complex "[0:v]split[a][b];[a]scale=45:36:flags=area,signalstats,metadata=mode=print:key=lavfi.signalstats.SATAVG:file=$tmp[a2];[b]signalstats,metadata=mode=print:key=lavfi.signalstats.UDIF:file=$tmp.f[b2]" \
+           -map "[a2]" -f null - -map "[b2]" -f null - 2>/dev/null || true
+    # smooth colour (45x36 average) divided down by chroma flicker: real colour ~20+, wrong subcarrier ~1
+    sat=$(awk -F= '/SATAVG/ {t+=$2;n++} END {printf "%.2f", n ? t/n : 0}' "$tmp" 2>/dev/null) || true
+    flick=$(awk -F= '/UDIF/ {t+=$2;n++} END {printf "%.2f", n ? t/n : 0}' "$tmp.f" 2>/dev/null) || true
+    sat=$(awk -v s="${sat:-0}" -v f="${flick:-0}" 'BEGIN {printf "%.1f", s * 10 / (10 + f)}')
+    printf "  %-9s colour %5s\n" "$name" "$sat" >&2
+    awk -v a="$sat" -v b="$bestsat" 'BEGIN {exit !(a > b * 1.2)}' && { best=$name; bestsat=$sat; }
+  done
+  rm -f "$tmp" "$tmp.f"
+  [[ "$bestsat" == 0 ]] && echo "  no colour on any standard: is the tape playing? using $best" >&2
+  echo "$best"
+}
+
+cmd_standard() {
+  [[ -e "$VIDEO_DEV" ]] || { echo "No capture card at $VIDEO_DEV." >&2; exit 1; }
+  v4l2-ctl -d "$VIDEO_DEV" --set-input="$VIDEO_INPUT" >/dev/null
+  ensure_signal
+  local best; best=$(detect_standard)
+  echo "Use: $best   (below ~5 on every line means the tape is really black and white, or not playing)"
+  v4l2-ctl -d "$VIDEO_DEV" --set-standard="$(std_id "$best")" >/dev/null
+}
+
+build_audio() {
+  local card af="aresample=async=1"
+  case "$AUDIO_SOURCE" in
+    linein)
+      card=$(grep -l Realtek /proc/asound/card*/codec#0 2>/dev/null | head -1 | sed -E 's|.*/card([0-9]+)/.*|\1|')
+      [[ -n "$card" ]] || { echo "Onboard Realtek audio not found. Is it enabled in the BIOS?" >&2; exit 1; }
+      amixer -q -c "$card" sset 'Input Source' 'Line'
+      amixer -q -c "$card" sset 'Capture' "$LINEIN_GAIN" cap      # 'cap' = capture switch on
+      amixer -q -c "$card" sset 'Line Boost' 0
+      [[ "$AUDIO_MODE" == mono ]] && af="pan=mono|c0=c0,$af"
+      AUDIO_IN=(-f alsa -thread_queue_size 4096 -i "hw:$card,0")
+      ;;
+    scarlett)
+      card=$(awk '/Scarlett/ {print $1}' /proc/asound/cards | head -1)
+      [[ -n "$card" ]] || { echo "Scarlett Solo not found (see /proc/asound/cards)" >&2; exit 1; }
+      # Scarlett channel 0 = input 1 (XLR), channel 1 = input 2 (1/4" jack)
+      [[ "$AUDIO_MODE" == mono ]] && af="pan=mono|c0=c1,$af"
+      AUDIO_IN=(-f alsa -acodec pcm_s32le -thread_queue_size 4096 -i "hw:$card,0")
+      ;;
+    *) echo "AUDIO_SOURCE must be linein or scarlett" >&2; exit 1 ;;
+  esac
+  AUDIO_AF=$af
+  MASTER_CODECS=(-c:v ffv1 -level 3 -coder 1 -context 1 -g 1 -slices "$FFV1_SLICES" -slicecrc 1
+                 -pix_fmt yuv422p -field_order "$FIELD" -aspect 4:3 -c:a flac)
+  MASTER_ARGS=("${MASTER_CODECS[@]}" -af "$af")
+}
+
+cmd_check() {
+  setup_video; build_audio; mkdir -p "$OUT_DIR"
+  local tmp="$OUT_DIR/.check.mkv" detected
+  detected=$(v4l2-ctl -d "$VIDEO_DEV" --get-detected-standard | tail -n +2 | xargs)
+  echo "Detected signal : ${detected:-none}"
+  echo "Capture standard: $VIDEO_STD  (input $VIDEO_INPUT, ${VIDEO_W}x${VIDEO_H}, audio $AUDIO_SOURCE)"
+  local check_status
+  if cap | timeout -k 2 30 ffmpeg -hide_banner -loglevel error -y "${VIDEO_IN[@]}" "${AUDIO_IN[@]}" -t 4 "${MASTER_ARGS[@]}" "$tmp"; then
+    check_status=0
+  else
+    check_status=$?
+  fi
+  [[ "$check_status" == 0 ]] || { echo "Capture check failed (status $check_status)." >&2; return 1; }
+  [[ -s "$tmp" ]] || { echo "No video arrived in 30 s. Is the VCR playing and the yellow cable in? (vhs preview shows the live picture)" >&2; exit 1; }
+  validate_recording "$tmp" || { echo "Capture check did not produce video and audio." >&2; return 1; }
+  local frames
+  frames=$(ffprobe -v error -select_streams v -count_packets -show_entries stream=nb_read_packets -of csv=p=0 "$tmp")
+  echo "Video frames    : $frames in 4 s  (expect ~100; 'repaired' above = sync lost on the tape, fewer is better)"
+  echo "Audio peak      : $(ffmpeg -nostdin -hide_banner -i "$tmp" -vn -af astats=measure_perchannel=Peak_level:measure_overall=none -f null - 2>&1 \
+                            | grep 'Peak level' | sed 's/.*: //' | xargs) dB  (aim for -12 to -6; below -60 = nothing connected)"
+  ffmpeg -nostdin -hide_banner -loglevel error -y -ss 2 -i "$tmp" -frames:v 1 \
+         -vf "bwdif=mode=send_frame:parity=$PARITY,scale=768:576" "$OUT_DIR/snapshot.png"
+  rm -f "$tmp"
+  echo "Snapshot        : $OUT_DIR/snapshot.png"
+  echo "Disk free       : $(df -h --output=avail "$OUT_DIR" | tail -1 | xargs)  (MP4 ~1.5 GB per hour; with KEEP_MASTER=yes add ~30 GB)"
+}
+
+cmd_preview() {
+  [[ -n "${DISPLAY:-}" || -e /tmp/.X11-unix/X0 ]] || { echo "No screen on this machine. Use 'vhs check' and look at snapshot.png instead." >&2; exit 1; }
+  setup_video
+  export DISPLAY="${DISPLAY:-:0}"
+  echo "Live preview on this machine's screen (video only). Press q in the window to quit."
+  cap | ffplay -hide_banner -loglevel error -fflags nobuffer "${VIDEO_IN[@]:0:8}" \
+               -vf "bwdif=mode=send_field:parity=$PARITY,setdar=4/3" -window_title "VHS preview" pipe:0
+}
+
+# vhs-cap with a live window: the window gets its copy on file descriptor 3, which vhs-cap
+# writes without ever waiting, so a slow or closed window can never cost a recorded frame.
+cap_with_window() {
+  cap 3 3> >(ffplay -hide_banner -loglevel error -fflags nobuffer -autoexit \
+                    -f rawvideo -pixel_format uyvy422 -video_size "${VIDEO_W}x${VIDEO_H}" -framerate "$VIDEO_FPS" \
+                    -vf "bwdif=mode=send_frame:parity=$PARITY,setdar=4/3" -window_title "VHS capture: $name" pipe:0 2>/dev/null)
+}
+
+cmd_capture() {
+  local name=${1:?usage: vhs capture <name> [HH:MM:SS]} dur=${2:-}
+  local out="$OUT_DIR/$name.mkv" mp4="$OUT_DIR/$name.mp4" part="$OUT_DIR/$name.part.mp4"
+  [[ "$KEEP_MASTER" == yes || "$CAPTURE_MP4" == yes ]] || { echo "KEEP_MASTER=no needs CAPTURE_MP4=yes, or nothing would be saved" >&2; exit 1; }
+  if [[ "$KEEP_MASTER" == yes && -e "$out" ]]; then echo "$out already exists" >&2; exit 1; fi
+  if [[ "$CAPTURE_MP4" == yes && ( -e "$mp4" || -e "$part" ) ]]; then echo "$mp4 already exists" >&2; exit 1; fi
+  setup_video; build_audio; view_settings; mkdir -p "$OUT_DIR"
+  local dur_args=() meta=(-metadata title="$name" -metadata date="$(date +%F)")
+  local capture_codes=() capture_failed=0 interrupted=0
+  trap 'interrupted=1' INT
+  [[ -n "$dur" ]] && dur_args=(-t "$dur")
+  # live window while recording (closing it does not stop the capture; it cannot be reopened)
+  local source=cap
+  if [[ "$CAPTURE_WINDOW" == yes && ( -n "${DISPLAY:-}" || -e /tmp/.X11-unix/X0 ) ]]; then
+    export DISPLAY="${DISPLAY:-:0}"
+    source=cap_with_window
+  fi
+  if [[ "$CAPTURE_MP4" == yes ]]; then
+    # one ffmpeg, two outputs: the master gets the frames untouched, the MP4 branch is deinterlaced and
+    # encoded on the fly. The MP4 is written fragmented, so it stays playable if the capture is cut off
+    # (power cut, crash), and is rewritten as a normal MP4 once the capture ends.
+    local graph outputs=() targets="$mp4"
+    if [[ "$KEEP_MASTER" == yes ]]; then
+      graph="[0:v]split[vm][vv];[vv]$VIEW_VF[vo];[1:a]$AUDIO_AF,asplit[am][ao]"
+      outputs=(-map "[vm]" -map "[am]" "${dur_args[@]}" "${MASTER_CODECS[@]}" "${meta[@]}" "$out")
+      targets="$out + $mp4"
+    else
+      graph="[0:v]$VIEW_VF[vo];[1:a]$AUDIO_AF[ao]"
+    fi
+    outputs+=(-map "[vo]" -map "[ao]" "${dur_args[@]}" "${VIEW_ARGS[@]}"
+              -movflags +frag_keyframe+empty_moov+default_base_moof "${meta[@]}" "$part")
+    echo "Capturing to $targets   (Ctrl-C to stop)"
+    if "$source" | ffmpeg -hide_banner -loglevel warning -stats "${VIEW_DEV[@]}" "${VIDEO_IN[@]}" "${AUDIO_IN[@]}" \
+                           -filter_complex "$graph" "${outputs[@]}"; then
+      capture_codes=("${PIPESTATUS[@]}")
+    else
+      capture_codes=("${PIPESTATUS[@]}")
+    fi
+    capture_result_ok || capture_failed=1
+    if validate_recording "$part"; then
+      if [[ "$capture_failed" == 0 ]] && ffmpeg -nostdin -n -hide_banner -loglevel error -i "$part" -map 0:v:0 -map 0:a:0 -c copy -movflags +faststart "$mp4" && validate_recording "$mp4"; then
+        rm -f "$part"
+      else
+        capture_failed=1
+        echo "Capture or finalization failed; recovery recording kept at $part" >&2
+      fi
+    else
+      capture_failed=1
+      echo "Capture output is missing usable video or audio: $part" >&2
+    fi
+  else
+    echo "Capturing to $out   (Ctrl-C to stop)"
+    if "$source" | ffmpeg -hide_banner -loglevel warning -stats "${VIDEO_IN[@]}" "${AUDIO_IN[@]}" "${dur_args[@]}" "${MASTER_ARGS[@]}" \
+                 "${meta[@]}" "$out"; then
+      capture_codes=("${PIPESTATUS[@]}")
+    else
+      capture_codes=("${PIPESTATUS[@]}")
+    fi
+    capture_result_ok || capture_failed=1
+  fi
+  trap - INT
+  pkill -f "VHS capture: $name pipe:0" 2>/dev/null || true   # the capture is over: close its window now
+  if [[ "$KEEP_MASTER" == yes ]] && ! validate_recording "$out"; then capture_failed=1; fi
+  [[ "$capture_failed" == 0 ]] || { echo "Capture failed; inspect any partial files before using them." >&2; return 1; }
+  local f saved=0; echo
+  local expected=()
+  [[ "$KEEP_MASTER" == yes ]] && expected+=("$out")
+  [[ "$CAPTURE_MP4" == yes ]] && expected+=("$mp4")
+  for f in "${expected[@]}"; do
+    [[ -s "$f" ]] && { echo "Saved $f  ($(du -h "$f" | cut -f1))"; saved=1; }
+  done
+  [[ "$saved" == 1 ]] || { echo "Capture failed, nothing saved" >&2; exit 1; }
+  if [[ "$CAPTURE_MP4" != yes ]]; then echo "Next: vhs encode $out"; fi
+}
+
+# These helpers run before reporting success. A nonempty file can contain only
+# audio or an MP4 header; inspect packets in each expected stream as well.
+validate_recording() {
+  local file=$1 kind packets
+  [[ -s "$file" ]] || return 1
+  for kind in v:0 a:0; do
+    packets=$(ffprobe -v error -select_streams "$kind" -read_intervals '%+5' -count_packets \
+      -show_entries stream=nb_read_packets -of csv=p=0 "$file") || return 1
+    [[ "$packets" =~ ^[0-9]+$ && "$packets" -gt 0 ]] || return 1
+  done
+}
+
+capture_result_ok() {
+  local code
+  # A timed FFmpeg run can close its pipe before the producer has finished.
+  [[ "${capture_codes[0]}" == 141 && "${capture_codes[1]}" == 0 ]] && return 0
+  for code in "${capture_codes[@]}"; do
+    [[ "$code" == 0 ]] && continue
+    # SIGINT is a requested stop only when the supervising shell received it.
+    [[ "$interrupted" == 1 && ( "$code" == 130 || "$code" == 141 || "$code" == 255 ) ]] && continue
+    echo "Capture process failed (status $code)." >&2
+    return 1
+  done
+}
+
+# The viewing copy, shared by 'vhs encode' and 'vhs capture' so both give identical files.
+view_settings() {
+  if [[ "$ENCODER" == vaapi ]]; then
+    # deinterlace on the CPU, encode HEVC on the GPU; ICQ 24 is roughly x264 crf 18 territory
+    VIEW_DEV=(-vaapi_device /dev/dri/renderD128)
+    VIEW_VF="bwdif=mode=send_field:parity=tff:deint=all,format=nv12,hwupload"
+    VIEW_ARGS=(-fps_mode cfr -c:v hevc_vaapi -rc_mode ICQ -global_quality 24 -tag:v hvc1 -aspect 4:3 -c:a aac -b:a 192k)
+  else
+    VIEW_DEV=()
+    VIEW_VF="bwdif=mode=send_field:parity=tff:deint=all,format=yuv420p"
+    VIEW_ARGS=(-fps_mode cfr -c:v libx264 -preset "$ENCODE_PRESET" -crf 18 -aspect 4:3 -c:a aac -b:a 192k)
+  fi
+}
+
+cmd_encode() {
+  local in=${1:?usage: vhs encode <file.mkv>} out
+  out="${in%.*}.mp4"
+  view_settings
+  ffmpeg -hide_banner -loglevel warning -stats "${VIEW_DEV[@]}" -i "$in" -vf "$VIEW_VF" "${VIEW_ARGS[@]}" \
+         -movflags +faststart "$out"
+  echo; echo "Saved $out  ($(du -h "$out" | cut -f1))"
+}
+
+case "${1:-}" in
+  check)   cmd_check ;;
+  preview) cmd_preview ;;
+  capture) shift; cmd_capture "$@" ;;
+  encode)  shift; cmd_encode "$@" ;;
+  standard) cmd_standard ;;
+  reset)    [[ -e "$VIDEO_DEV" ]] || { echo "No capture card at $VIDEO_DEV." >&2; exit 1; }; reset_card ;;
+  *)       usage; exit 1 ;;
+esac

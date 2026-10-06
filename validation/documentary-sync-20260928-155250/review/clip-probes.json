@@ -1,0 +1,74 @@
+{
+  "early-05m50s.mp4": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "start_time": "0.000000",
+        "duration": "20.000000",
+        "nb_frames": "1000"
+      },
+      {
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "start_time": "0.000000",
+        "duration": "20.000000",
+        "nb_frames": "939"
+      }
+    ],
+    "format": {
+      "duration": "20.000000",
+      "size": "4980538"
+    }
+  },
+  "late-27m00s.mp4": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "start_time": "0.000000",
+        "duration": "20.000000",
+        "nb_frames": "1000"
+      },
+      {
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "start_time": "0.000000",
+        "duration": "20.000000",
+        "nb_frames": "939"
+      }
+    ],
+    "format": {
+      "duration": "20.000000",
+      "size": "4766118"
+    }
+  },
+  "middle-13m30s.mp4": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "start_time": "0.000000",
+        "duration": "20.000000",
+        "nb_frames": "1000"
+      },
+      {
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "start_time": "0.000000",
+        "duration": "20.000000",
+        "nb_frames": "939"
+      }
+    ],
+    "format": {
+      "duration": "20.000000",
+      "size": "5528580"
+    }
+  }
+}

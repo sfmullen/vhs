@@ -1,0 +1,23 @@
+{
+  "common_preview_gain_db": 12,
+  "filter": "afftdn=nr=6:nf=-60:tn=1:gs=8",
+  "original_samples": 1440000,
+  "processed_samples": 1440000,
+  "processed_lag_samples": 0,
+  "processed_lag_ms": 0.0,
+  "original_peak_dbfs": -9.584407817468467,
+  "processed_peak_dbfs": -9.609214373440665,
+  "original_band_rms_dbfs": {
+    "200-4000Hz": -25.781030273078986,
+    "4000-8000Hz": -54.87989793008333,
+    "8000-16000Hz": -52.824631068599494
+  },
+  "processed_band_rms_dbfs": {
+    "200-4000Hz": -25.79815879390565,
+    "4000-8000Hz": -60.014998208983954,
+    "8000-16000Hz": -57.41338732137901
+  },
+  "uncompensated_filter_lag_samples": 1200,
+  "uncompensated_filter_lag_ms": 25,
+  "timing_compensation": "Append 1200 silence samples before denoising; trim the first 1200 output samples and retain exactly 1440000 samples."
+}

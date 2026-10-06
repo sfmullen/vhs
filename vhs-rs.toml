@@ -1,0 +1,19 @@
+# Installed separately from the existing vhs script.
+video_device = "/dev/video0"
+video_input = 0
+standard = "auto"
+audio_device = "auto-scarlett"
+audio_channel = 1
+stereo = false
+output_dir = "/srv/vhs"
+encoder = "vaapi"
+quality = 24
+x264_preset = "veryfast"
+preview = true
+keep_master = false
+capture_mp4 = true
+idle_timeout_secs = 15
+write_timeout_secs = 3
+auto_reset = true
+render_device = "/dev/dri/renderD128"
+

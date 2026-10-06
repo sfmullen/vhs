@@ -1,0 +1,26 @@
+{
+  "analysis_completed": true,
+  "reported": true,
+  "status": "awaiting_human_lip_sync_review",
+  "completed_utc": "2026-09-29T14:27:52.880637+00:00",
+  "capture_exit_code": 0,
+  "decoded_video_frames": 60000,
+  "decode_errors": 0,
+  "encoded_file_integrity": "passed",
+  "capture_quality": "disturbance around 09:30\u201310:20, with STK1160 driver errors; recording recovered",
+  "physical_fixed_offset": "unknown",
+  "physical_drift": "unknown",
+  "physical_step_change": "unknown",
+  "limitation": "Available tools do not provide reliable synchronized speech-to-moving-lips perception. User review of selected clips is required.",
+  "report": "report.md",
+  "primary_clips": [
+    "review/early-02m20s.mp4",
+    "review/late-19m20s.mp4"
+  ],
+  "additional_clips": [
+    "review/before-disturbance-09m00s.mp4",
+    "review/after-disturbance-14m10s.mp4"
+  ],
+  "automation_id": "validate-documentary-vhs-sync",
+  "next_action": "Ask whether audio is aligned, early, or late in beginning/end clips and whether the offset changes; inspect before/after clips if needed."
+}

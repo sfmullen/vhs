@@ -1,0 +1,80 @@
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from '/Users/sfmullen/Code/vhs-archive/validation/documentary-sync-20260928-155250/review/early-05m50s.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    title           : documentary-40m
+    encoder         : Lavf62.3.100
+  Duration: 00:00:20.00, start: 0.000000, bitrate: 1992 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(progressive), 768x576 [SAR 1:1 DAR 4:3], 1791 kb/s, 50 fps, 50 tbr, 12800 tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+      encoder         : Lavc62.11.100 libx264
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, mono, fltp, 190 kb/s (default)
+    Metadata:
+      handler_name    : SoundHandler
+Stream mapping:
+  Stream #0:1 -> #0:0 (aac (native) -> pcm_s16le (native))
+Press [q] to stop, [?] for help
+Output #0, null, to 'pipe:':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    title           : documentary-40m
+    encoder         : Lavf62.12.102
+  Stream #0:0(und): Audio: pcm_s16le, 48000 Hz, mono, s16, 768 kb/s (default)
+    Metadata:
+      encoder         : Lavc62.28.102 pcm_s16le
+      handler_name    : SoundHandler
+[Parsed_astats_0 @ 0x146804540] Channel: 1
+[Parsed_astats_0 @ 0x146804540] DC offset: 0.000009
+[Parsed_astats_0 @ 0x146804540] Min level: -0.354894
+[Parsed_astats_0 @ 0x146804540] Max level: 0.337099
+[Parsed_astats_0 @ 0x146804540] Min difference: 0.000000
+[Parsed_astats_0 @ 0x146804540] Max difference: 0.074876
+[Parsed_astats_0 @ 0x146804540] Mean difference: 0.006107
+[Parsed_astats_0 @ 0x146804540] RMS difference: 0.009453
+[Parsed_astats_0 @ 0x146804540] Peak level dB: -8.998017
+[Parsed_astats_0 @ 0x146804540] RMS level dB: -22.507769
+[Parsed_astats_0 @ 0x146804540] RMS peak dB: -16.609925
+[Parsed_astats_0 @ 0x146804540] RMS through dB: -32.509525
+[Parsed_astats_0 @ 0x146804540] Crest factor: 4.736828
+[Parsed_astats_0 @ 0x146804540] Flat factor: 0.000000
+[Parsed_astats_0 @ 0x146804540] Peak count: 2
+[Parsed_astats_0 @ 0x146804540] Abs Peak count: 1
+[Parsed_astats_0 @ 0x146804540] Noise floor dB: -23.913391
+[Parsed_astats_0 @ 0x146804540] Noise floor count: 285
+[Parsed_astats_0 @ 0x146804540] Entropy: 0.788729
+[Parsed_astats_0 @ 0x146804540] Bit depth: 30/32/32/32
+[Parsed_astats_0 @ 0x146804540] Dynamic range: 131.698141
+[Parsed_astats_0 @ 0x146804540] Zero crossings: 37544
+[Parsed_astats_0 @ 0x146804540] Zero crossings rate: 0.039087
+[Parsed_astats_0 @ 0x146804540] Number of NaNs: 0
+[Parsed_astats_0 @ 0x146804540] Number of Infs: 0
+[Parsed_astats_0 @ 0x146804540] Number of denormals: 0
+[Parsed_astats_0 @ 0x146804540] Overall
+[Parsed_astats_0 @ 0x146804540] DC offset: 0.000009
+[Parsed_astats_0 @ 0x146804540] Min level: -0.354894
+[Parsed_astats_0 @ 0x146804540] Max level: 0.337099
+[Parsed_astats_0 @ 0x146804540] Min difference: 0.000000
+[Parsed_astats_0 @ 0x146804540] Max difference: 0.074876
+[Parsed_astats_0 @ 0x146804540] Mean difference: 0.006107
+[Parsed_astats_0 @ 0x146804540] RMS difference: 0.009453
+[Parsed_astats_0 @ 0x146804540] Peak level dB: -8.998017
+[Parsed_astats_0 @ 0x146804540] RMS level dB: -22.507769
+[Parsed_astats_0 @ 0x146804540] RMS peak dB: -16.609925
+[Parsed_astats_0 @ 0x146804540] RMS through dB: -32.509525
+[Parsed_astats_0 @ 0x146804540] Flat factor: 0.000000
+[Parsed_astats_0 @ 0x146804540] Peak count: 2.000000
+[Parsed_astats_0 @ 0x146804540] Abs Peak count: 1.000000
+[Parsed_astats_0 @ 0x146804540] Noise floor dB: -23.913391
+[Parsed_astats_0 @ 0x146804540] Noise floor count: 285.000000
+[Parsed_astats_0 @ 0x146804540] Entropy: 0.788729
+[Parsed_astats_0 @ 0x146804540] Bit depth: 30/32/32/32
+[Parsed_astats_0 @ 0x146804540] Number of samples: 960512
+[Parsed_astats_0 @ 0x146804540] Number of NaNs: 0.000000
+[Parsed_astats_0 @ 0x146804540] Number of Infs: 0.000000
+[Parsed_astats_0 @ 0x146804540] Number of denormals: 0.000000
+[out#0/null @ 0x145e15410] video:0KiB audio:1876KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+size=N/A time=00:00:20.01 bitrate=N/A speed=1.22e+03x elapsed=0:00:00.01    

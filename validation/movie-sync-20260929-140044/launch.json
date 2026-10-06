@@ -1,0 +1,9 @@
+{
+  "directory": "/srv/vhs/_lab/movie-sync-20260929-140044",
+  "wrapper_pid": 1625,
+  "duration_seconds": 1200,
+  "launched_utc": "2026-09-29T14:00:44.506591+00:00",
+  "automatic_filename": true,
+  "source": "English-spoken movie with subtitles, per user",
+  "purpose": "Beginning/end physical lip-sync comparison"
+}

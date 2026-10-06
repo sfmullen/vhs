@@ -1,0 +1,30 @@
+{
+  "0": {
+    "packets": 60000,
+    "first_pts": 0.02,
+    "last_pts": 1200.001406,
+    "last_packet_end": 1200.021406,
+    "pts_delta_min": 0.01999999999998181,
+    "pts_delta_max": 0.021405999999999998,
+    "pts_delta_counts": {
+      "0.021406": 1,
+      "0.02": 59998
+    },
+    "non_increasing_dts": 0,
+    "duplicate_pts": 0
+  },
+  "1": {
+    "packets": 56251,
+    "first_pts": 0.0,
+    "last_pts": 1200.0,
+    "last_packet_end": 1200.021333,
+    "pts_delta_min": 0.021332999999913227,
+    "pts_delta_max": 0.02133400000002439,
+    "pts_delta_counts": {
+      "0.021333": 37500,
+      "0.021334": 18750
+    },
+    "non_increasing_dts": 0,
+    "duplicate_pts": 0
+  }
+}

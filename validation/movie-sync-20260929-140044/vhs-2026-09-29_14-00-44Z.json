@@ -1,0 +1,63 @@
+{
+  "status": "completed",
+  "reason": null,
+  "started_unix_seconds": 1790690460,
+  "elapsed_seconds": 1201.668743635,
+  "standard": "PAL-Nc",
+  "stats": {
+    "received": 30126,
+    "repaired": 826,
+    "repeated": 282,
+    "duplicates": 403,
+    "invalid": 0,
+    "output_frames": 30004
+  },
+  "config": {
+    "video_device": "/dev/video0",
+    "video_input": 0,
+    "standard": "auto",
+    "audio_device": "auto-scarlett",
+    "audio_channel": 1,
+    "stereo": false,
+    "output_dir": "/srv/vhs/_lab/movie-sync-20260929-140044",
+    "encoder": "vaapi",
+    "quality": 24,
+    "x264_preset": "veryfast",
+    "preview": true,
+    "keep_master": false,
+    "capture_mp4": true,
+    "idle_timeout_secs": 15.0,
+    "write_timeout_secs": 3.0,
+    "auto_reset": true,
+    "render_device": "/dev/dri/renderD128"
+  },
+  "output": {
+    "format": {
+      "duration": "1200.021406",
+      "size": "509909140"
+    },
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "avg_frame_rate": "128000000/2560003",
+        "codec_name": "hevc",
+        "codec_type": "video",
+        "color_range": "tv",
+        "duration": "1200.001406",
+        "height": 576,
+        "nb_read_packets": "250",
+        "width": 720
+      },
+      {
+        "avg_frame_rate": "0/0",
+        "channels": 1,
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "duration": "1200.021333",
+        "nb_read_packets": "235",
+        "sample_rate": "48000"
+      }
+    ]
+  }
+}

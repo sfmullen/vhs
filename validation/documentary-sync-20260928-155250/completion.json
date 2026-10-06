@@ -1,0 +1,16 @@
+{
+  "analysis_completed": true,
+  "reported": true,
+  "completed_utc": "2026-09-28T16:41:08.954938+00:00",
+  "capture_exit_code": 0,
+  "decoded_video_frames": 120000,
+  "decode_errors": 0,
+  "technical_validation": "passed",
+  "physical_fixed_offset": "unknown",
+  "physical_drift": "unknown",
+  "limitation": "User confirmed Spanish dubbing; no known synchronized audiovisual source reference established.",
+  "usable_picture_end_seconds_estimate": 1669,
+  "report": "report.md",
+  "automation_id": "validate-documentary-vhs-sync",
+  "next_action": "Known-reference sync comparison before promoting vhs-rs."
+}

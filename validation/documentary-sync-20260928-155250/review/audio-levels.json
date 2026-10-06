@@ -1,0 +1,17 @@
+{
+  "early-05m50s.mp4": {
+    "exit_code": 0,
+    "peak_dbfs": "-8.998017",
+    "rms_dbfs": "-22.507769"
+  },
+  "late-27m00s.mp4": {
+    "exit_code": 0,
+    "peak_dbfs": "-8.432580",
+    "rms_dbfs": "-23.931889"
+  },
+  "middle-13m30s.mp4": {
+    "exit_code": 0,
+    "peak_dbfs": "-8.400894",
+    "rms_dbfs": "-21.521278"
+  }
+}

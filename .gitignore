@@ -1,0 +1,11 @@
+/target/
+*.part.mp4
+*.finalizing.mp4
+__pycache__/
+
+
+/validation/**/*.png
+/validation/**/*.mp4
+/validation/**/*.wav
+/validation/**/*.m4a
+/validation/**/*.flac

@@ -1,0 +1,32 @@
+{
+  "file": "/srv/vhs/_lab/movie-sync-20260929-140044/hiss-check/lower-gain-20260929-144359Z.wav",
+  "basename": "lower-gain-20260929-144359Z",
+  "duration_seconds": 15,
+  "user_change": "Reduced physical GAIN 2 knob",
+  "processing": "Input 2 only; no denoising or added gain",
+  "command": [
+    "ffmpeg",
+    "-nostdin",
+    "-hide_banner",
+    "-loglevel",
+    "warning",
+    "-f",
+    "alsa",
+    "-acodec",
+    "pcm_s32le",
+    "-ar",
+    "48000",
+    "-ch_layout",
+    "stereo",
+    "-i",
+    "hw:0,0",
+    "-t",
+    "15",
+    "-af",
+    "pan=mono|c0=c1",
+    "-c:a",
+    "pcm_s24le",
+    "-n",
+    "/srv/vhs/_lab/movie-sync-20260929-140044/hiss-check/lower-gain-20260929-144359Z.wav"
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "after-disturbance-14m10s.mp4": {
+    "decode_exit_code": 0,
+    "peak_dbfs": "-20.397006",
+    "rms_dbfs": "-36.785669",
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_type": "video",
+          "time_base": "1/12800",
+          "start_time": "0.001016",
+          "duration": "20.000000",
+          "nb_frames": "1000"
+        },
+        {
+          "codec_type": "audio",
+          "time_base": "1/48000",
+          "start_time": "0.000000",
+          "duration": "20.000000",
+          "nb_frames": "939"
+        }
+      ],
+      "format": {
+        "duration": "20.001016",
+        "size": "10165002"
+      }
+    }
+  },
+  "before-disturbance-09m00s.mp4": {
+    "decode_exit_code": 0,
+    "peak_dbfs": "-20.056522",
+    "rms_dbfs": "-36.551500",
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_type": "video",
+          "time_base": "1/12800",
+          "start_time": "0.001016",
+          "duration": "20.000000",
+          "nb_frames": "1000"
+        },
+        {
+          "codec_type": "audio",
+          "time_base": "1/48000",
+          "start_time": "0.000000",
+          "duration": "20.000000",
+          "nb_frames": "939"
+        }
+      ],
+      "format": {
+        "duration": "20.001016",
+        "size": "11709846"
+      }
+    }
+  },
+  "early-02m20s.mp4": {
+    "decode_exit_code": 0,
+    "peak_dbfs": "-21.586750",
+    "rms_dbfs": "-37.253620",
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_type": "video",
+          "time_base": "1/12800",
+          "start_time": "0.001016",
+          "duration": "30.000000",
+          "nb_frames": "1500"
+        },
+        {
+          "codec_type": "audio",
+          "time_base": "1/48000",
+          "start_time": "0.000000",
+          "duration": "30.000000",
+          "nb_frames": "1408"
+        }
+      ],
+      "format": {
+        "duration": "30.001016",
+        "size": "14615156"
+      }
+    }
+  },
+  "late-19m20s.mp4": {
+    "decode_exit_code": 0,
+    "peak_dbfs": "-20.512804",
+    "rms_dbfs": "-37.171704",
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_type": "video",
+          "time_base": "1/12800",
+          "start_time": "0.001016",
+          "duration": "30.000000",
+          "nb_frames": "1500"
+        },
+        {
+          "codec_type": "audio",
+          "time_base": "1/48000",
+          "start_time": "0.000000",
+          "duration": "30.000000",
+          "nb_frames": "1408"
+        }
+      ],
+      "format": {
+        "duration": "30.001016",
+        "size": "13003591"
+      }
+    }
+  }
+}

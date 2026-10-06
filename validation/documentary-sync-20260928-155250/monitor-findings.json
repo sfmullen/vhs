@@ -1,0 +1,25 @@
+{
+  "observed_utc": "2026-09-28T16:23:21Z",
+  "capture_running": false,
+  "latest_progress_seconds": 1833,
+  "received_frames": 45821,
+  "repaired_frames": 105,
+  "repeated_frames": 309,
+  "sample_at_seconds": 1800,
+  "sample_image": "monitor-30m.png",
+  "visual_observation": "Sample at 30:00 shows full-screen black-and-white static; normal documentary picture is absent.",
+  "cause": "User confirmed that the documentary ended earlier than 40 minutes.",
+  "action": "Capture left running unchanged to its scheduled finish. Use the last clear documentary scenes for the end reference, determine usable content duration, and exclude trailing static from perceptual sync comparisons. Do not repeat unchanged notifications.",
+  "source_audio": "Spanish dub, confirmed by user",
+  "usable_picture_end_seconds_estimate": 1669,
+  "usable_picture_end_bracket_seconds": [
+    1668,
+    1670
+  ],
+  "physical_lip_sync": "Unverified: dubbed mouth movements are not a reliable source reference. No known synchronized audiovisual event established.",
+  "review_clips": [
+    "review/early-05m50s.mp4",
+    "review/middle-13m30s.mp4",
+    "review/late-27m00s.mp4"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "started_utc": "2026-09-29T14:35:26.763956+00:00",
+  "user_observation": "Hiss is present only in the captured recording, not when listening directly to the VCR.",
+  "interface": "Focusrite Scarlett Solo 3rd Gen, USB 1235:8211",
+  "input_2_mode": "Line",
+  "input_1_air": "off",
+  "phantom_power": "off",
+  "direct_monitor": "off",
+  "raw_capture_command": [
+    "ffmpeg",
+    "-nostdin",
+    "-hide_banner",
+    "-loglevel",
+    "warning",
+    "-f",
+    "alsa",
+    "-acodec",
+    "pcm_s32le",
+    "-ar",
+    "48000",
+    "-ch_layout",
+    "stereo",
+    "-i",
+    "hw:0,0",
+    "-t",
+    "12",
+    "-c:a",
+    "pcm_s24le",
+    "-n",
+    "/srv/vhs/_lab/movie-sync-20260929-140044/hiss-check/scarlett-raw-stereo.wav"
+  ],
+  "exit_code": 0
+}

@@ -1,0 +1,17 @@
+{
+  "peak_dbfs": "-28.408446",
+  "rms_dbfs": "-46.853122",
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "sample_rate": "48000",
+        "channels": 1
+      }
+    ],
+    "format": {
+      "duration": "14.999771"
+    }
+  }
+}
